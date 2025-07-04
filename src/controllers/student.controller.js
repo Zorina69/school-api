@@ -3,10 +3,36 @@ import db from '../models/index.js';
 /**
  * @swagger
  * tags:
- *   name: Students
- *   description: Student management
+ *   - name: Students
+ *     description: Student management
  */
 
+/**
+ * @swagger
+ * /students:
+ *   post:
+ *     summary: Create a new student
+ *     tags: [Students]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, age, classId]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               age:
+ *                 type: integer
+ *               classId:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Student created
+ *       500:
+ *         description: Internal server error
+ */
 export const createStudent = async (req, res) => {
     try {
         const student = await db.Student.create(req.body);
@@ -19,21 +45,48 @@ export const createStudent = async (req, res) => {
 /**
  * @swagger
  * /students:
- *   get:
+  *   get:
  *     summary: Get all students
  *     tags: [Students]
+ *     parameters:
+ *       - name: limit
+ *         in: query
+ *         description: Number of students to return
+ *         required: false
+ *         schema: { type: integer, default: 10 }
+ *       - name: id
+ *         in: query
+ *         description: Page number
+ *         required: false
+ *         schema: { type: integer, default: 1 }
+ *           
  *     responses:
  *       200:
  *         description: List of students
  */
+
 export const getAllStudents = async (req, res) => {
+    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.id) || 1;
+    const offset = (page - 1) * limit;
+
     try {
-        const students = await db.Student.findAll({ include: db.Course });
-        res.json(students);
+        const { count: total, rows: students } = await db.Student.findAndCountAll({
+            limit,
+            offset,
+        });
+
+        res.json({
+            total,
+            page,
+            data: students,
+            totalPages: Math.ceil(total / limit),
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
+
 
 /**
  * @swagger

@@ -30,6 +30,8 @@ import db from '../models/index.js';
  *     responses:
  *       201:
  *         description: Course created
+ *       500:
+ *         description: Internal server error
  */
 export const createCourse = async (req, res) => {
     try {
@@ -49,33 +51,37 @@ export const createCourse = async (req, res) => {
  *     parameters:
  *       - in: query
  *         name: page
- *         schema: { type: integer, default: 1 }
+ *         schema:
+ *           type: integer
+ *           default: 1
  *         description: Page number
  *       - in: query
  *         name: limit
- *         schema: { type: integer, default: 10 }
+ *         schema:
+ *           type: integer
+ *           default: 10
  *         description: Number of items per page
  *     responses:
  *       200:
  *         description: List of courses
+ *       500:
+ *         description: Internal server error
  */
 export const getAllCourses = async (req, res) => {
-
     const limit = parseInt(req.query.limit) || 10;
     const page = parseInt(req.query.page) || 1;
 
-    const total = await db.Course.count();
-
     try {
-        const courses = await db.Course.findAll(
-            {
-                // include: [db.Student, db.Teacher],
-                limit: limit, offset: (page - 1) * limit
-            }
-        );
+        const total = await db.Course.count();
+        const courses = await db.Course.findAll({
+            limit,
+            offset: (page - 1) * limit,
+            // include: [db.Student, db.Teacher], // Optional include
+        });
+
         res.json({
-            total: total,
-            page: page,
+            total,
+            page,
             data: courses,
             totalPages: Math.ceil(total / limit),
         });
@@ -94,16 +100,21 @@ export const getAllCourses = async (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: integer }
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Course found
  *       404:
  *         description: Not found
+ *       500:
+ *         description: Internal server error
  */
 export const getCourseById = async (req, res) => {
     try {
-        const course = await db.Course.findByPk(req.params.id, { include: [db.Student, db.Teacher] });
+        const course = await db.Course.findByPk(req.params.id, {
+            include: [db.Student, db.Teacher],
+        });
         if (!course) return res.status(404).json({ message: 'Not found' });
         res.json(course);
     } catch (err) {
@@ -121,15 +132,28 @@ export const getCourseById = async (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: integer }
+ *         schema:
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
- *           schema: { type: object }
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               TeacherId:
+ *                 type: integer
  *     responses:
  *       200:
  *         description: Course updated
+ *       404:
+ *         description: Not found
+ *       500:
+ *         description: Internal server error
  */
 export const updateCourse = async (req, res) => {
     try {
@@ -152,10 +176,15 @@ export const updateCourse = async (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: integer }
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Course deleted
+ *       404:
+ *         description: Not found
+ *       500:
+ *         description: Internal server error
  */
 export const deleteCourse = async (req, res) => {
     try {
